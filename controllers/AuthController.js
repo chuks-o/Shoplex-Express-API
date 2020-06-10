@@ -3,6 +3,7 @@ const { User, Profile } = models;
 const bcrypt = require("bcrypt");
 const { generateJWTToken } = require("../utilities/authUtils");
 const mailer = require("../utilities/mailer.js");
+const { ErrorHandler } = require("../utilities/errorHandler");
 
 module.exports = {
   signup: async (req, res, next) => {
@@ -14,11 +15,7 @@ module.exports = {
       });
 
       if (userExists.length > 0) {
-        return res.status(401).json({
-          success: false,
-          code: 401,
-          message: "User already exists, proceed to login",
-        });
+        throw new ErrorHandler(401, "User already exists, proceed to login");
       } else {
         // hash password and save user
         bcrypt.hash(password, 10, async (err, hash) => {
@@ -56,17 +53,14 @@ module.exports = {
             return res.status(201).json({
               success: true,
               code: 201,
+              message: "Signup successful",
               data: { user: newUser },
             });
           }
         });
       }
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        code: 500,
-        error: error.message,
-      });
+      next(error);
     }
   },
 
@@ -87,11 +81,7 @@ module.exports = {
       // compare passwords
       const match = await bcrypt.compare(password, user.password);
       if (!match) {
-        return res.status(400).json({
-          success: false,
-          code: 400,
-          message: "Incorrect login details.",
-        });
+        throw new ErrorHandler(400, "Incorrect Login details");
       } else {
         // Generate jwt token
         const jwtToken = await generateJWTToken(req.body);
@@ -100,12 +90,13 @@ module.exports = {
         return res.status(200).json({
           success: true,
           code: 200,
+          message: "Auth successful",
           data: { user },
           token: jwtToken,
         });
       }
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      next(error);
     }
   },
 };

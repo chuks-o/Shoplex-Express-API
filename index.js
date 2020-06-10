@@ -18,14 +18,6 @@ app.use(express.static(__dirname + "/public"));
 app.use(morgan("dev"));
 
 // cors
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
-  next();
-});
 app.use(cors());
 //allow OPTIONS on all resources
 app.options("*", cors());
@@ -45,6 +37,12 @@ app.use("/emails", require("./routes/emails.js"));
 // Error handler
 app.use((err, req, res, next) => {
   handleError(err, res);
+});
+
+app.use(function (err, req, res, next) {
+  console.error(err.message);
+  if (!err.statusCode) err.statusCode = 500;
+  res.status(err.statusCode).send(err.message);
 });
 
 app.listen(port, () => console.log(`App running on port ${port}.`));

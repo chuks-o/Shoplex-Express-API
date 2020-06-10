@@ -10,8 +10,9 @@ const handleError = (err, res) => {
   const { statusCode, message } = err;
   res.status(statusCode).json({
     status: "error",
-    statusCode,
+    code: statusCode,
     message,
+    data: null,
   });
 };
 

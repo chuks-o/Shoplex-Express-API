@@ -1,13 +1,12 @@
-const fs = require("fs");
 const models = require("../database/models");
 const { ErrorHandler } = require("../utilities/errorHandler");
+const { uploadImage } = require("../utilities/cloudinaryUpload");
 
 const {
   User,
   States,
   Uploads,
   Product,
-  Profile,
   Subscriptions,
   ProductSubCategory,
   ProductMainCategory,
@@ -53,18 +52,7 @@ const getProductById = async (req, res, next) => {
   try {
     const product = await Product.findOne({
       where: { id: req.params.productId },
-      include: [
-        { model: User, as: "creator" },
-        { model: ProductMainCategory, as: "mainCategory" },
-        { model: ProductSubCategory, as: "subCategory" },
-        { model: States, as: "state" },
-        { model: LocalGovernmentArea, as: "lga" },
-        {
-          model: Subscriptions,
-          as: "subscription",
-          include: { model: SubscriptionPackage, as: "package" },
-        },
-      ],
+      include: { all: true },
     });
 
     if (!product || product.length === 0) {
@@ -90,18 +78,7 @@ const getUserProductsByStatus = async (req, res, next) => {
   try {
     const products = await Product.findAll({
       where: { userId, status },
-      include: [
-        { model: User, as: "creator" },
-        { model: ProductMainCategory, as: "mainCategory" },
-        { model: ProductSubCategory, as: "subCategory" },
-        { model: States, as: "state" },
-        { model: LocalGovernmentArea, as: "lga" },
-        {
-          model: Subscriptions,
-          as: "subscription",
-          include: { model: SubscriptionPackage, as: "package" },
-        },
-      ],
+      include: { all: true },
     });
 
     if (!products) {
@@ -128,18 +105,7 @@ const getProductsByCategoryId = async (req, res, next) => {
   try {
     const products = await Product.findAll({
       where: { categoryId },
-      include: [
-        { model: User, as: "creator" },
-        { model: ProductMainCategory, as: "mainCategory" },
-        { model: ProductSubCategory, as: "subCategory" },
-        { model: States, as: "state" },
-        { model: LocalGovernmentArea, as: "lga" },
-        {
-          model: Subscriptions,
-          as: "subscription",
-          include: { model: SubscriptionPackage, as: "package" },
-        },
-      ],
+      include: { all: true },
     });
 
     if (!products.length) {
@@ -164,19 +130,7 @@ const getProductsBySubCategoryId = async (req, res, next) => {
   try {
     const products = await Product.findAll({
       where: { subCategoryId },
-      include: [
-        { model: User, as: "creator" },
-        { model: ProductMainCategory, as: "mainCategory" },
-        { model: ProductSubCategory, as: "subCategory" },
-        { model: States, as: "state" },
-        { model: LocalGovernmentArea, as: "lga" },
-        { model: Subscriptions, as: "subscription" },
-        {
-          model: Subscriptions,
-          as: "subscription",
-          include: { model: SubscriptionPackage, as: "package" },
-        },
-      ],
+      include: { all: true },
     });
 
     if (!products) {
@@ -203,22 +157,7 @@ const getProductsByUserId = async (req, res, next) => {
 
     const products = await Product.findAll({
       where: { userId },
-      include: [
-        {
-          model: User,
-          as: "creator",
-          include: { model: Profile, as: "profile" },
-        },
-        { model: ProductMainCategory, as: "mainCategory" },
-        { model: ProductSubCategory, as: "subCategory" },
-        { model: States, as: "state" },
-        { model: LocalGovernmentArea, as: "lga" },
-        {
-          model: Subscriptions,
-          as: "subscription",
-          include: { model: SubscriptionPackage, as: "package" },
-        },
-      ],
+      include: { all: true },
     });
 
     if (!products) {
@@ -243,50 +182,41 @@ const getProductsByUserId = async (req, res, next) => {
 const createProduct = async (req, res, next) => {
   try {
     req.body.slug = req.body.title.replace(/\s/g, "-").toLowerCase();
-
     const product = await Product.create(req.body);
 
     if (product) {
-      // start upload
-      if (req.file) {
-        const file = global.__basedir + "/uploads/" + req.file.filename;
+      // upload image here
+      if (req.files) {
+        const productImages = [];
+        const files = req.files;
 
-        fs.rename(req.file.path, file, async function (err) {
-          try {
-            if (err) {
-              res.status(500).send(err);
-            } else {
-              await Uploads.create({
-                productId: product.id,
-                filename: req.file.filename,
-              });
-            }
-          } catch (err) {
-            throw new ErrorHandler(500, err.message);
-          }
-        });
+        for (const file of files) {
+          const { path } = file;
+          const uploaded = await uploadImage(path);
+          productImages.push({
+            productId: product.id,
+            filename: uploaded.secure_url,
+          });
+        }
+        // save uploads reference
+        await Uploads.bulkCreate(productImages);
       }
       // end upload
 
       const newProduct = await Product.findOne({
         where: { id: product.id },
-        include: [
-          { model: User, as: "creator" },
-          { model: ProductMainCategory, as: "mainCategory" },
-          { model: ProductSubCategory, as: "subCategory" },
-          { model: States, as: "state" },
-          { model: LocalGovernmentArea, as: "lga" },
-        ],
+        include: { all: true },
       });
 
       return res.status(201).json({
         status: "ok",
         code: 201,
         message: "Your product has been successfully created",
-        data: { product: newProduct },
+        data: {
+          product: newProduct,
+        },
       });
     }
-
     next();
   } catch (error) {
     next(error);
@@ -295,42 +225,24 @@ const createProduct = async (req, res, next) => {
 
 const updateProduct = async (req, res, next) => {
   try {
-    const {
-      categoryId,
-      title,
-      description,
-      price,
-      inspection_address,
-    } = req.body;
-
+    if (req.body.hasOwnProperty("title")) {
+      req.body.slug = req.body.title.replace(/\s/g, "-").toLowerCase();
+    }
     const { productId } = req.params;
 
-    const product = await Product.findOne({ where: { id: productId } });
+    const product = await Product.update(req.body, {
+      where: { id: productId },
+    });
 
     if (!product) {
       throw new ErrorHandler(404, "No product was found.");
     }
 
-    product.categoryId = categoryId;
-    product.title = title;
-    product.description = description;
-    product.price = price;
-    product.inspection_address = inspection_address;
-    product.slug = title.replace(/\s/g, "-").toLowerCase();
-    await product.save();
-
     const updatedProduct = await Product.findOne({
       where: { id: productId },
-      include: [
-        { model: User, as: "creator" },
-        { model: ProductMainCategory, as: "mainCategory" },
-        {
-          model: Subscriptions,
-          as: "subscription",
-          include: { model: SubscriptionPackage, as: "package" },
-        },
-      ],
+      include: { all: true },
     });
+
     return res.status(200).json({
       status: "ok",
       code: 201,
@@ -338,7 +250,7 @@ const updateProduct = async (req, res, next) => {
       data: { product: updatedProduct },
     });
   } catch (error) {
-    return res.status(500).json({ err: error.message });
+    next(error);
   }
 };
 

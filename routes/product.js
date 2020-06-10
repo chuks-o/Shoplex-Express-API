@@ -21,7 +21,7 @@ router.get(
   ProductController.getProductsBySubCategoryId
 );
 
-router.get(
+router.post(
   "/by-status/user",
   verifyToken,
   ProductController.getUserProductsByStatus
@@ -30,7 +30,7 @@ router.get(
 router.post(
   "/store",
   verifyToken,
-  upload.single("file"), // file upload
+  upload.array("images"), // file upload
   ProductController.createProduct
 );
 
