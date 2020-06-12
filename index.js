@@ -4,7 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const { handleError } = require("./utilities/errorHandler.js");
-const port = 5000;
+const port = process.env.PORT || 5000;
 global.__basedir = __dirname;
 
 app.use(bodyParser.json());
