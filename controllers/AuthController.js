@@ -37,18 +37,18 @@ module.exports = {
               include: { model: Profile, as: "profile" },
             });
 
-            const mailOptions = {
-              from: '"Shoplex Team" <info@shoplex.ng>',
-              to: newUser.email,
-              subject: "Verify Your Email Address",
-              // html: emailTemplate,
-            };
+            // const mailOptions = {
+            //   from: '"Shoplex Team" <info@shoplex.ng>',
+            //   to: newUser.email,
+            //   subject: "Verify Your Email Address",
+            //   // html: emailTemplate,
+            // };
 
-            mailer.sendMail(
-              { type: "verify_email" }, // email type
-              { user: newUser, actionLink: "localhost:9000/login" }, // mail body payload
-              mailOptions
-            );
+            // mailer.sendMail(
+            //   { type: "verify_email" }, // email type
+            //   { user: newUser, actionLink: "localhost:9000/login" }, // mail body payload
+            //   mailOptions
+            // );
 
             return res.status(201).json({
               success: true,
