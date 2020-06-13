@@ -6,20 +6,19 @@ module.exports = {
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE,
     host: "127.0.0.1",
-    dialect: "postgres"
+    dialect: "postgres",
   },
   test: {
     username: "postgres",
     password: "postgres",
     database: "nodeapi",
     host: "127.0.0.1",
-    dialect: "postgres"
+    dialect: "postgres",
   },
   production: {
-    username: "postgres",
-    password: "postgres",
-    database: "nodeapi",
-    host: "127.0.0.1",
-    dialect: "postgres"
-  }
+    database: "shoplexdb",
+    dialect: "postgres",
+    operatorsAliases: false,
+    use_env_variable: "DATABASE_URL",
+  },
 };
