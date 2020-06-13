@@ -18,7 +18,6 @@ module.exports = {
   production: {
     database: "shoplexdb",
     dialect: "postgres",
-    operatorsAliases: false,
     use_env_variable: "DATABASE_URL",
   },
 };
