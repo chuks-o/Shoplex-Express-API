@@ -1,6 +1,7 @@
 const models = require("../database/models");
 const { States, LocalGovernmentArea } = models;
 const { ErrorHandler } = require("../utilities/errorHandler");
+const regionData = require("../utilities/statesandlga");
 
 const getStates = async (req, res, next) => {
   try {
@@ -73,8 +74,28 @@ const getLgaByState = async (req, res, next) => {
   }
 };
 
+const postStateLga = async (req, res, next) => {
+  try {
+    for (let i = 0; i < regionData.length; i++) {
+      const statePayload = { name: regionData[i].state.name };
+      const state = await States.create(statePayload);
+
+      const lgaNames = regionData[i].state.locals.map((lga) => {
+        return { name: lga.name, stateId: state.id };
+      });
+
+      LocalGovernmentArea.bulkCreate(lgaNames);
+    }
+
+    return res.status(200).json({ data: "successful" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getStates,
   getStateById,
   getLgaByState,
+  postStateLga,
 };

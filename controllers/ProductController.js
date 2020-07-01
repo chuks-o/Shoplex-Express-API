@@ -17,18 +17,7 @@ const {
 const getAllProducts = async (req, res, next) => {
   try {
     const products = await Product.findAll({
-      include: [
-        { model: User, as: "creator" },
-        { model: ProductMainCategory, as: "mainCategory" },
-        { model: ProductSubCategory, as: "subCategory" },
-        { model: States, as: "state" },
-        { model: LocalGovernmentArea, as: "lga" },
-        {
-          model: Subscriptions,
-          as: "subscription",
-          include: { model: SubscriptionPackage, as: "package" },
-        },
-      ],
+      include: { all: true },
     });
 
     if (!products) {
@@ -278,6 +267,8 @@ const deleteProduct = async (req, res, next) => {
     });
   }
 };
+
+const SearchForProduct = async (req, res, next) => {};
 
 const AddSlugToProduct = async (req, res, next) => {
   try {
